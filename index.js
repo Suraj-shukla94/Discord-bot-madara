@@ -110,12 +110,34 @@ client.on("messageCreate", async (message) => {
             break;
 
         case "senddm":
-            if (!target || !args.length) return message.reply("⚠ Mention a user and provide a message.");
-            const dmMessage = args.join(" ");
-            await target.send(dmMessage);
-            logAction(`${message.author.tag} sent a DM to ${target.user.tag}: ${dmMessage}`);
-            message.reply(`✅ Message sent to **${target.user.tag}**.`);
-            break;
+    if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+        return message.reply("❌ You do not have permission to use this command.");
+    }
+
+    let target;
+    if (message.mentions.members.first()) {
+        target = message.mentions.members.first().user;
+    } else if (args[0] && !isNaN(args[0])) {
+        try {
+            target = await client.users.fetch(args[0]);
+        } catch (error) {
+            return message.reply("❌ Invalid user ID.");
+        }
+    } else {
+        return message.reply("⚠ Usage: `+senddm @user [message]` or `+senddm userID [message]`");
+    }
+
+    const dmMessage = args.slice(1).join(" ");
+    if (!dmMessage) return message.reply("⚠ Please provide a message to send.");
+
+    try {
+        await target.send(dmMessage);
+        logAction(`${message.author.tag} sent a DM to ${target.tag}: ${dmMessage}`);
+        message.reply(`✅ Message sent to **${target.tag}**.`);
+    } catch (error) {
+        message.reply("❌ Failed to send DM. The user may have DMs disabled.");
+    }
+    break;
 
         case "logchannel":
             if (!args[0]) return message.reply("⚠ Provide a channel ID.");
